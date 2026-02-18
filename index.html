@@ -268,7 +268,7 @@
       margin-top: 16px;
       display: grid;
       gap: 10px;
-      grid-template-columns: 2fr 1fr 1fr auto;
+      grid-template-columns: 2fr 1.2fr 1.2fr auto;
     }
 
     input, select {
@@ -281,6 +281,16 @@
       outline: none;
       font: inherit;
       transition: border-color .2s ease, box-shadow .2s ease;
+    }
+
+    select {
+      padding-right: 34px;
+      min-width: 0;
+    }
+
+    option {
+      color: #0d1630;
+      background: #edf3ff;
     }
 
     input::placeholder { color: rgba(238, 243, 255, 0.65); }
@@ -417,6 +427,20 @@
       border-radius: 14px;
     }
 
+    .section-title {
+      scroll-margin-top: 24px;
+    }
+
+    /* Navegación lateral funcional tipo dashboard (vista activa) */
+    .dashboard-section {
+      display: none;
+      animation: fadeInUp .28s ease;
+    }
+
+    .dashboard-section.is-visible {
+      display: block;
+    }
+
     @media (max-width: 980px) {
       .app { grid-template-columns: 1fr; }
       .sidebar {
@@ -454,10 +478,10 @@
       </div>
 
       <nav class="nav" aria-label="Navegación principal">
-        <button class="nav-btn active"><span>🏠</span>Inicio</button>
-        <button class="nav-btn"><span>✅</span>Hábitos</button>
-        <button class="nav-btn"><span>📊</span>Estadísticas</button>
-        <button class="nav-btn"><span>⚙️</span>Ajustes</button>
+        <button class="nav-btn active" data-target="inicio"><span>🏠</span>Inicio</button>
+        <button class="nav-btn" data-target="habitos"><span>✅</span>Hábitos</button>
+        <button class="nav-btn" data-target="estadisticas"><span>📊</span>Estadísticas</button>
+        <button class="nav-btn" data-target="ajustes"><span>⚙️</span>Ajustes</button>
       </nav>
 
       <button id="modeBtn" class="mode-toggle" type="button">Alternar modo neón</button>
@@ -465,7 +489,7 @@
 
     <main>
       <section class="top">
-        <article class="card glass">
+        <article class="card glass section-title dashboard-section is-visible" id="inicio">
           <h2>Panel diario</h2>
           <p class="subtitle">Visualiza tu progreso y mantén el enfoque.</p>
           <div class="quick-stats">
@@ -494,7 +518,7 @@
           </div>
         </article>
 
-        <article class="card glass">
+        <article class="card glass section-title dashboard-section" id="habitos">
           <h2>Agregar tarea / hábito</h2>
           <p class="subtitle">Define categoría y prioridad para organizar mejor tu día.</p>
           <form id="taskForm" class="form-grid">
@@ -517,7 +541,7 @@
         </article>
       </section>
 
-      <section class="card glass">
+      <section class="card glass section-title dashboard-section" id="estadisticas">
         <div class="filter-row">
           <h3>Lista de tareas</h3>
           <select id="filterCategory" style="max-width:220px;">
@@ -530,6 +554,15 @@
         </div>
         <ul id="taskList" class="task-list"></ul>
         <div id="emptyState" class="empty">No hay tareas aún. Agrega tu primera meta ✨</div>
+      </section>
+
+      <section class="card glass section-title dashboard-section" id="ajustes">
+        <h3>Ajustes rápidos</h3>
+        <p class="subtitle" style="margin-top:8px;">Controla la apariencia y limpia el tablero cuando quieras.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;">
+          <button id="modeBtnSecondary" class="btn-primary" type="button">Alternar modo</button>
+          <button id="clearDoneBtn" class="delete" type="button" style="padding:10px 14px;border:1px solid rgba(255,255,255,.18);border-radius:12px;color:var(--text);">Eliminar completadas</button>
+        </div>
       </section>
     </main>
   </div>
@@ -562,6 +595,10 @@
     const completedCount = document.getElementById('completedCount');
     const percent = document.getElementById('percent');
     const modeBtn = document.getElementById('modeBtn');
+    const modeBtnSecondary = document.getElementById('modeBtnSecondary');
+    const clearDoneBtn = document.getElementById('clearDoneBtn');
+    const navButtons = [...document.querySelectorAll('.nav-btn')];
+    const dashboardSections = [...document.querySelectorAll('.dashboard-section')];
 
     // Utilidad para persistir tareas
     const saveTasks = () => localStorage.setItem(STORAGE_KEYS.tasks, JSON.stringify(state.tasks));
@@ -690,8 +727,45 @@
       applyMode();
     });
 
+    modeBtnSecondary.addEventListener('click', () => {
+      state.mode = state.mode === 'neon' ? 'dark' : 'neon';
+      applyMode();
+    });
+
+    clearDoneBtn.addEventListener('click', () => {
+      const before = state.tasks.length;
+      state.tasks = state.tasks.filter(task => !task.done);
+      if (state.tasks.length !== before) {
+        saveTasks();
+        render();
+      }
+    });
+
+    // Cambia la sección visible del dashboard y el estado activo en navegación
+    function setActiveSection(targetId) {
+      dashboardSections.forEach(section => {
+        section.classList.toggle('is-visible', section.id === targetId);
+      });
+
+      navButtons.forEach(button => {
+        button.classList.toggle('active', button.dataset.target === targetId);
+      });
+    }
+
+    // Sidebar funcional: cada botón cambia de vista y hace scroll al inicio de la sección
+    navButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const targetId = button.dataset.target;
+        const target = document.getElementById(targetId);
+        if (!target) return;
+        setActiveSection(targetId);
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+
     // Inicialización
     applyMode();
+    setActiveSection('inicio');
     render();
   </script>
 </body>
